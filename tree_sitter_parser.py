@@ -1,0 +1,105 @@
+import tree_sitter
+from typing import List, Dict
+# Import language modules
+from tree_sitter_python import language as python_language
+from tree_sitter_javascript import language as javascript_language
+from tree_sitter_typescript import language as typescript_language
+from tree_sitter_ruby import language as ruby_language
+from tree_sitter_go import language as go_language
+from tree_sitter_java import language as java_language
+
+class TreeSitterParser:
+    """Handles parsing code using tree-sitter for multiple languages."""
+    
+    # Update language mapping to use imported modules
+    LANGUAGE_CONFIGS = {
+        'python': python_language,
+        'javascript': javascript_language,
+        'typescript': typescript_language,
+        'ruby': ruby_language,
+        'go': go_language,
+        'java': java_language
+    }
+    
+    def __init__(self, source_code: str, language: str = 'python'):
+        """
+        Initialize parser with source code and language.
+        
+        Args:
+            source_code: The source code to parse
+            language: Programming language of the source code (default: 'python')
+        """
+        # Initialize tree-sitter
+        self.parser = tree_sitter.Parser()
+        
+        # Validate language
+        language = language.lower()
+        if language not in self.LANGUAGE_CONFIGS:
+            raise ValueError(f"Unsupported language: {language}. Supported languages: {', '.join(self.LANGUAGE_CONFIGS.keys())}")
+            
+        # Use the language module directly
+        try:
+            self.parser.set_language(self.LANGUAGE_CONFIGS[language])
+        except Exception as e:
+            raise RuntimeError(f"Failed to load {language} grammar: {str(e)}")
+        
+        self.source_code = source_code
+        self.tree = self.parser.parse(bytes(source_code, "utf8"))
+        self.language = language
+    
+    def get_node_text(self, node) -> str:
+        """Gets the source text for a given node."""
+        start_byte = node.start_byte
+        end_byte = node.end_byte
+        return self.source_code[start_byte:end_byte]
+    
+    def get_nodes_by_type(self, type_name: str):
+        """Gets all nodes of a specific type from the syntax tree."""
+        cursor = self.tree.walk()
+        nodes = []
+        
+        def visit_node():
+            if cursor.node.type == type_name:
+                nodes.append(cursor.node)
+            return True
+            
+        cursor.goto_first_child()
+        while True:
+            if not visit_node():
+                break
+            if not cursor.goto_next_sibling():
+                break
+                
+        return nodes
+    
+    def get_node_docstring(self, node) -> str:
+        """Extracts docstring from a node."""
+        # Look for the first string literal in the node's body
+        for child in node.children:
+            if child.type == 'expression_statement':
+                string_node = child.child_by_field_name('expression')
+                if string_node and string_node.type == 'string':
+                    return self.get_node_text(string_node).strip('\"\'')
+        return None
+    
+    def get_method_parameters(self, method_node) -> List[str]:
+        """Extracts parameter names from a method node."""
+        params = []
+        parameters_node = method_node.child_by_field_name('parameters')
+        if parameters_node:
+            for child in parameters_node.children:
+                if child.type == 'identifier':
+                    param_name = self.get_node_text(child)
+                    if param_name != 'self':
+                        params.append(param_name)
+        return params
+    
+    def get_module_docstring(self) -> str:
+        """Gets the module-level docstring."""
+        # Look for the first string literal in the module
+        for node in self.tree.root_node.children:
+            if node.type == 'expression_statement':
+                string_node = node.child_by_field_name('expression')
+                if string_node and string_node.type == 'string':
+                    return self.get_node_text(string_node).strip('\"\'')
+        return None 
