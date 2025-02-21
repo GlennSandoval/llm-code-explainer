@@ -1,25 +1,9 @@
 import tree_sitter
 from typing import List, Dict
-# Import language modules
-from tree_sitter_python import language as python_language
-from tree_sitter_javascript import language as javascript_language
-from tree_sitter_typescript import language as typescript_language
-from tree_sitter_ruby import language as ruby_language
-from tree_sitter_go import language as go_language
-from tree_sitter_java import language as java_language
+from language_config import LANGUAGE_CONFIGS
 
 class TreeSitterParser:
     """Handles parsing code using tree-sitter for multiple languages."""
-    
-    # Update language mapping to use imported modules
-    LANGUAGE_CONFIGS = {
-        'python': python_language,
-        'javascript': javascript_language,
-        'typescript': typescript_language,
-        'ruby': ruby_language,
-        'go': go_language,
-        'java': java_language
-    }
     
     def __init__(self, source_code: str, language: str = 'python'):
         """
@@ -34,12 +18,12 @@ class TreeSitterParser:
         
         # Validate language
         language = language.lower()
-        if language not in self.LANGUAGE_CONFIGS:
-            raise ValueError(f"Unsupported language: {language}. Supported languages: {', '.join(self.LANGUAGE_CONFIGS.keys())}")
+        if language not in LANGUAGE_CONFIGS:
+            raise ValueError(f"Unsupported language: {language}. Supported languages: {', '.join(LANGUAGE_CONFIGS.keys())}")
             
         # Use the language module directly
         try:
-            self.parser.set_language(self.LANGUAGE_CONFIGS[language])
+            self.parser.set_language(LANGUAGE_CONFIGS[language])
         except Exception as e:
             raise RuntimeError(f"Failed to load {language} grammar: {str(e)}")
         

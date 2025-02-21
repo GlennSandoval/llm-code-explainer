@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 import os
 from tree_sitter_parser import TreeSitterParser
+from language_config import get_language_from_extension
+from llm_manager import LLMManager, CodeElement
 
 @dataclass
 class CodeElement:
@@ -18,32 +20,10 @@ class CodeAnalyzer:
     """Analyzes Python source code and generates natural language descriptions using LLM."""
     
     def __init__(self, source_code: str, file_path: str = None, openai_api_key: str = None):
-        self.language = self._detect_language(file_path) if file_path else 'python'
+        self.language = get_language_from_extension(file_path)
         self.parser = TreeSitterParser(source_code, language=self.language)
         self.source_code = source_code
-        
-        # Load API key from .env file if not provided
-        load_dotenv()
-        openai.api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
-        if not openai.api_key:
-            raise ValueError("OpenAI API key must be provided either through .env file or constructor")
-    
-    def _detect_language(self, file_path: str) -> str:
-        """Detects programming language based on file extension."""
-        extension_map = {
-            '.py': 'python',
-            '.js': 'javascript',
-            '.ts': 'typescript',
-            '.java': 'java',
-            '.cpp': 'cpp',
-            '.c': 'c',
-            '.rb': 'ruby',
-            '.go': 'go',
-            '.rs': 'rust',
-            '.php': 'php'
-        }
-        ext = os.path.splitext(file_path)[1].lower()
-        return extension_map.get(ext, 'python')  # Default to Python if extension not found
+        self.llm_manager = LLMManager(openai_api_key)
     
     def analyze(self) -> str:
         """Analyzes the code and returns a natural language description."""
@@ -126,56 +106,11 @@ class CodeAnalyzer:
     
     def _get_llm_description(self, element: CodeElement) -> str:
         """Generates a semantic description using LLM."""
-        if element.type == 'class':
-            prompt = f"""Given this Python class:
-
-{element.source_code}
-
-Provide a concise description of what this class does. Focus on its purpose and main functionality. Docstring: {element.docstring}
-"""
-        else:  # method
-            prompt = f"""Given this Python method:
-
-{element.source_code}
-
-Provide a concise description of what this method does. Include its purpose, parameters, and return value. Docstring: {element.docstring}
-"""
-        
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a code analysis assistant. Provide clear, concise descriptions of Python code."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=150,
-                temperature=0.2
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            return f"Error generating description: {str(e)}"
+        return self.llm_manager.get_code_description(element)
     
     def _generate_module_description(self, module_doc: str) -> str:
         """Generates a module-level description using LLM."""
-        prompt = f"""Given this Python module docstring:
-
-{module_doc}
-
-Provide a concise description of what this module does."""
-        
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a code analysis assistant. Provide clear, concise descriptions of Python code."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=100,
-                temperature=0.2
-            )
-            return f"Module Purpose: {response.choices[0].message.content.strip()}\n"
-        except Exception as e:
-            return f"Module Purpose: {module_doc}\n"
+        return self.llm_manager.get_module_description(module_doc)
 
 # Example usage
 if __name__ == "__main__":
