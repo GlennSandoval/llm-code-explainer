@@ -1,8 +1,5 @@
-import openai
 from typing import Dict, List
 from dataclasses import dataclass
-from dotenv import load_dotenv
-import os
 from tree_sitter_parser import TreeSitterParser
 from language_config import get_language_from_extension
 from llm_manager import LLMManager, CodeElement
