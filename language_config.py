@@ -1,4 +1,10 @@
-from typing import Dict
+from typing import Dict, Any
+# Add module docstring
+"""
+Configuration module for programming language support and file extension mapping.
+Provides utilities for language detection and parsing capability verification.
+"""
+
 # Import language modules
 from tree_sitter_python import language as python_language
 from tree_sitter_javascript import language as javascript_language
@@ -6,15 +12,23 @@ from tree_sitter_typescript import language as typescript_language
 from tree_sitter_ruby import language as ruby_language
 from tree_sitter_go import language as go_language
 from tree_sitter_java import language as java_language
+from tree_sitter_cpp import language as cpp_language
+from tree_sitter_c import language as c_language
+from tree_sitter_rust import language as rust_language
+from tree_sitter_php import language as php_language
 
 # Mapping of language names to their tree-sitter language modules
-LANGUAGE_CONFIGS: Dict[str, any] = {
+LANGUAGE_CONFIGS: Dict[str, Any] = {
     'python': python_language,
     'javascript': javascript_language,
     'typescript': typescript_language,
     'ruby': ruby_language,
     'go': go_language,
-    'java': java_language
+    'java': java_language,
+    'cpp': cpp_language,
+    'c': c_language,
+    'rust': rust_language,
+    'php': php_language
 }
 
 # Mapping of file extensions to language names
@@ -43,9 +57,13 @@ def get_language_from_extension(file_path: str) -> str | None:
     """
     if not file_path:
         return None
-    ext = file_path.lower().split('.')[-1]
-    if not ext.startswith('.'):
-        ext = f'.{ext}'
+        
+    # Improved extension handling
+    parts = file_path.lower().split('.')
+    if len(parts) < 2:
+        return None
+        
+    ext = f'.{parts[-1]}'
     return EXTENSION_MAP.get(ext)
 
 def is_parseable(file_path: str) -> bool:

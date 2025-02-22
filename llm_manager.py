@@ -1,8 +1,11 @@
-import openai
 from dataclasses import dataclass
 from typing import List
 import os
+
+from anthropic import Anthropic
 from dotenv import load_dotenv
+from llama_cpp import Llama
+import openai
 
 @dataclass
 class CodeElement:
@@ -16,23 +19,20 @@ class CodeElement:
 class LLMManager:
     """Manages all interactions with the Language Learning Model (LLM)."""
     
-    def __init__(self, provider: str = "openai", api_key: str = None):
+    def __init__(self, provider: str = "openai", api_key: str | None = None) -> None:
         """Initialize the LLM manager with specified provider and API key."""
         load_dotenv()
         self.provider = provider.lower()
         
         if self.provider == "openai":
-            import openai
             openai.api_key = api_key or os.getenv('OPENAI_API_KEY')
             if not openai.api_key:
                 raise ValueError("OpenAI API key must be provided either through .env file or constructor")
         elif self.provider == "anthropic":
-            from anthropic import Anthropic
             self.client = Anthropic(api_key=api_key or os.getenv('ANTHROPIC_API_KEY'))
             if not self.client.api_key:
                 raise ValueError("Anthropic API key must be provided either through .env file or constructor")
         elif self.provider == "openllama":
-            from llama_cpp import Llama
             self.model = Llama(
                 model_path=os.getenv('OPENLLAMA_MODEL_PATH'),
                 n_ctx=2048,
@@ -75,7 +75,6 @@ Provide a concise description of what this module does."""
         """Makes the API call to the LLM and returns the response."""
         try:
             if self.provider == "openai":
-                import openai
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
