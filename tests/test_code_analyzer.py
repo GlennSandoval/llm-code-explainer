@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import Mock, patch
 import os
-from analyzer import CodeAnalyzer
-from tree_sitter_parser import TreeSitterParser
+from src.analyzer import CodeAnalyzer
+from src.tree_sitter_parser import TreeSitterParser
 
 @pytest.fixture
 def mock_repo():
