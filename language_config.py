@@ -46,24 +46,13 @@ EXTENSION_MAP: Dict[str, str] = {
 }
 
 def get_language_from_extension(file_path: str) -> str | None:
-    """
-    Detects programming language based on file extension.
-    
-    Args:
-        file_path: Path to the source code file
-        
-    Returns:
-        str | None: Detected language name, or None if extension not found
-    """
+    """Detects programming language based on file extension."""
     if not file_path:
         return None
-        
-    # Improved extension handling
-    parts = file_path.lower().split('.')
-    if len(parts) < 2:
-        return None
-        
-    ext = f'.{parts[-1]}'
+    
+    # Use os.path for more reliable extension extraction
+    import os
+    ext = os.path.splitext(file_path.lower())[1]
     return EXTENSION_MAP.get(ext)
 
 def is_parseable(file_path: str) -> bool:

@@ -39,25 +39,29 @@ class TreeSitterParser:
     
     def get_nodes_by_type(self, type_name: str):
         """Gets all nodes of a specific type from the syntax tree."""
-        cursor = self.tree.walk()
         nodes = []
         
-        def visit_node():
+        def traverse(cursor):
             if cursor.node.type == type_name:
                 nodes.append(cursor.node)
-            return True
             
-        cursor.goto_first_child()
-        while True:
-            if not visit_node():
-                break
-            if not cursor.goto_next_sibling():
-                break
-                
+            if cursor.goto_first_child():
+                while True:
+                    traverse(cursor)
+                    if not cursor.goto_next_sibling():
+                        break
+                cursor.goto_parent()
+            
+        cursor = self.tree.walk()
+        traverse(cursor)
         return nodes
     
-    def get_node_docstring(self, node) -> str:
-        """Extracts docstring from a node."""
+    def get_node_docstring(self, node) -> str | None:
+        """Extracts docstring from a node.
+        
+        Returns:
+            str | None: The docstring if found, None otherwise
+        """
         # Look for the first string literal in the node's body
         for child in node.children:
             if child.type == 'expression_statement':

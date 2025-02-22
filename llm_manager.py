@@ -16,6 +16,10 @@ class CodeElement:
     source_code: str
     parameters: List[str] = None
 
+class LLMError(Exception):
+    """Custom exception for LLM-related errors."""
+    pass
+
 class LLMManager:
     """Manages all interactions with the Language Learning Model (LLM)."""
     
@@ -108,4 +112,4 @@ Provide a concise description of what this module does."""
                 return response['choices'][0]['text'].strip()
             
         except Exception as e:
-            return f"Error generating description: {str(e)}" 
+            raise LLMError(f"Failed to generate description: {str(e)}") 

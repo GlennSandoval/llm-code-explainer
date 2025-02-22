@@ -4,15 +4,6 @@ from tree_sitter_parser import TreeSitterParser
 from language_config import get_language_from_extension
 from llm_manager import LLMManager, CodeElement
 
-@dataclass
-class CodeElement:
-    """Represents a code element with its context."""
-    name: str
-    type: str  # 'class' or 'method'
-    docstring: str
-    source_code: str
-    parameters: List[str] = None
-
 class CodeAnalyzer:
     """Analyzes Python source code and generates natural language descriptions using LLM."""
     
@@ -20,7 +11,7 @@ class CodeAnalyzer:
         self.language = get_language_from_extension(file_path)
         self.parser = TreeSitterParser(source_code, language=self.language)
         self.source_code = source_code
-        self.llm_manager = LLMManager(openai_api_key)
+        self.llm_manager = LLMManager(provider="openai", api_key=openai_api_key)
     
     def analyze(self) -> str:
         """Analyzes the code and returns a natural language description."""
@@ -36,6 +27,16 @@ class CodeAnalyzer:
         for node in class_nodes:
             description.append(self._analyze_class(node))
                 
+        # Analyze top-level functions
+        function_nodes = self.parser.get_nodes_by_type('function_definition')
+        top_level_functions = [node for node in function_nodes 
+                              if node.parent.type == 'module']
+        
+        if top_level_functions:
+            description.append("\nTop-level functions:")
+            for node in top_level_functions:
+                description.append(self._analyze_method(node))
+            
         return "\n".join(description)
     
     def _analyze_class(self, class_node) -> str:
@@ -61,7 +62,8 @@ class CodeAnalyzer:
         
         # Analyze methods
         methods = []
-        method_nodes = self.parser.get_nodes_by_type('function_definition')
+        method_nodes = [node for node in class_node.children 
+                       if node.type == 'function_definition']
         for node in method_nodes:
             methods.append(self._analyze_method(node))
                 
