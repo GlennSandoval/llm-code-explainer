@@ -8,9 +8,9 @@ from .llm_manager import LLMManager, CodeElement
 class CodeAnalyzer:
     """Analyzes source code in a git repository and generates natural language descriptions using LLM."""
     
-    def __init__(self, repo_path: str):
+    def __init__(self, repo_path: str, provider: str = "openai"):
         self.repo_path = os.path.abspath(repo_path)
-        self.llm_manager = LLMManager(provider="openai")
+        self.llm_manager = LLMManager(provider)
         
     def _get_repository_files(self) -> List[str]:
         """Gets list of tracked files in the git repository."""

@@ -5,6 +5,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+os.environ["OPENAI_API_KEY"] = "sk-proj-1234567890"
+
 @pytest.fixture
 def code_analyzer():
     return CodeAnalyzer()

@@ -79,7 +79,7 @@ Provide a concise description of what this module does."""
         """Makes the API call to the LLM and returns the response."""
         try:
             if self.provider == "openai":
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model="gpt-4",
                     messages=[
                         {"role": "system", "content": "You are a code analysis assistant. Provide clear, concise descriptions of Python code."},

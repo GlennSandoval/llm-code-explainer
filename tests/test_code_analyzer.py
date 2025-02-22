@@ -53,27 +53,38 @@ class TestClass:
 
 def test_read_file_content(code_analyzer):
     """Test reading file content"""
-    with patch('builtins.open', mock_open := Mock()) as mock_file:
-        mock_file.return_value.__enter__.return_value.read.return_value = "test content"
+    # Create a mock that properly implements the context manager protocol
+    mock_file = Mock()
+    mock_file.read.return_value = "test content"
+    
+    with patch('builtins.open', return_value=mock_file) as mock_open:
         content = code_analyzer._read_file_content("test.py")
         assert content == "test content"
         mock_open.assert_called_once_with("test.py", 'r', encoding='utf-8')
 
 def test_read_file_content_fallback_encoding(code_analyzer):
     """Test reading file content with fallback encoding"""
-    with patch('builtins.open') as mock_open:
-        # First call raises UnicodeDecodeError, second call succeeds
-        mock_open.side_effect = [
-            UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid'),
-            Mock().__enter__.return_value
-        ]
-        mock_open.return_value.__enter__.return_value.read.return_value = "test content"
-        
+    # Create mocks that properly implement file reading
+    mock_file_utf8 = Mock()
+    mock_file_utf8.read.side_effect = UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid')
+    
+    mock_file_latin = Mock()
+    mock_file_latin.read.return_value = "test content"
+    
+    mock_open = Mock()
+    mock_open.side_effect = [mock_file_utf8, mock_file_latin]
+    
+    with patch('builtins.open', mock_open):
         content = code_analyzer._read_file_content("test.py")
         assert content == "test content"
+        # Verify both encodings were attempted
+        assert mock_open.call_args_list == [
+            ((("test.py", 'r'), {'encoding': 'utf-8'})),
+            ((("test.py", 'r'), {'encoding': 'latin-1'}))
+        ]
 
-@patch('code_analyzer.get_language_from_extension')
-@patch('code_analyzer.TreeSitterParser')
+@patch('src.analyzer.get_language_from_extension')
+@patch('src.analyzer.TreeSitterParser')
 def test_analyze(mock_parser_class, mock_get_language, code_analyzer, mock_repo):
     """Test the analyze method"""
     # Setup mocks
