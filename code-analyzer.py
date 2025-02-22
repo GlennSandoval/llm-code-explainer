@@ -7,11 +7,11 @@ from llm_manager import LLMManager, CodeElement
 class CodeAnalyzer:
     """Analyzes Python source code and generates natural language descriptions using LLM."""
     
-    def __init__(self, source_code: str, file_path: str = None, openai_api_key: str = None):
+    def __init__(self, source_code: str, file_path: str = None):
         self.language = get_language_from_extension(file_path)
         self.parser = TreeSitterParser(source_code, language=self.language)
         self.source_code = source_code
-        self.llm_manager = LLMManager(provider="openai", api_key=openai_api_key)
+        self.llm_manager = LLMManager(provider="openai")
     
     def analyze(self) -> str:
         """Analyzes the code and returns a natural language description."""

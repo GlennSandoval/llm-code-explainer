@@ -23,19 +23,19 @@ class LLMError(Exception):
 class LLMManager:
     """Manages all interactions with the Language Learning Model (LLM)."""
     
-    def __init__(self, provider: str = "openai", api_key: str | None = None) -> None:
-        """Initialize the LLM manager with specified provider and API key."""
+    def __init__(self, provider: str = "openai") -> None:
+        """Initialize the LLM manager with specified provider."""
         load_dotenv()
         self.provider = provider.lower()
         
         if self.provider == "openai":
-            openai.api_key = api_key or os.getenv('OPENAI_API_KEY')
+            openai.api_key = os.getenv('OPENAI_API_KEY')
             if not openai.api_key:
-                raise ValueError("OpenAI API key must be provided either through .env file or constructor")
+                raise ValueError("OpenAI API key must be provided in .env file")
         elif self.provider == "anthropic":
-            self.client = Anthropic(api_key=api_key or os.getenv('ANTHROPIC_API_KEY'))
+            self.client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
             if not self.client.api_key:
-                raise ValueError("Anthropic API key must be provided either through .env file or constructor")
+                raise ValueError("Anthropic API key must be provided in .env file")
         elif self.provider == "openllama":
             self.model = Llama(
                 model_path=os.getenv('OPENLLAMA_MODEL_PATH'),
