@@ -1,6 +1,6 @@
 import tree_sitter
 from typing import List, Dict
-from language_config import LANGUAGE_CONFIGS
+from .language_config import LANGUAGE_CONFIGS
 
 class TreeSitterParser:
     """Handles parsing code using tree-sitter for multiple languages."""

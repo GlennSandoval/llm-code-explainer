@@ -1,9 +1,9 @@
 from typing import Dict, List
 import subprocess
 import os
-from tree_sitter_parser import TreeSitterParser
-from src.language_config import get_language_config
-from llm_manager import LLMManager, CodeElement
+from .tree_sitter_parser import TreeSitterParser
+from .language_config import get_language_from_extension
+from .llm_manager import LLMManager, CodeElement
 
 class CodeAnalyzer:
     """Analyzes source code in a git repository and generates natural language descriptions using LLM."""
@@ -46,7 +46,7 @@ class CodeAnalyzer:
         for file_path in self._get_repository_files():
             # Skip files we can't parse
             try:
-                language = get_language_config(file_path)
+                language = get_language_from_extension(file_path)
                 if not language:
                     continue
             except ValueError:

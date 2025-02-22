@@ -8,14 +8,14 @@ Provides utilities for language detection and parsing capability verification.
 # Import language modules
 from tree_sitter_python import language as python_language
 from tree_sitter_javascript import language as javascript_language
-from tree_sitter_typescript import language as typescript_language
+from tree_sitter_typescript import language_typescript as typescript_language
 from tree_sitter_ruby import language as ruby_language
 from tree_sitter_go import language as go_language
 from tree_sitter_java import language as java_language
 from tree_sitter_cpp import language as cpp_language
 from tree_sitter_c import language as c_language
 from tree_sitter_rust import language as rust_language
-from tree_sitter_php import language as php_language
+from tree_sitter_php import language_php as php_language
 
 # Mapping of language names to their tree-sitter language modules
 LANGUAGE_CONFIGS: Dict[str, Any] = {

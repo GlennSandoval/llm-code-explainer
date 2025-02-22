@@ -1,4 +1,4 @@
-from code_analyzer import CodeAnalyzer
+from src.analyzer import CodeAnalyzer
 
 # Example usage
 if __name__ == "__main__":
