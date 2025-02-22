@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 import os
-from code_analyzer import CodeAnalyzer
+from analyzer import CodeAnalyzer
 from tree_sitter_parser import TreeSitterParser
 
 @pytest.fixture

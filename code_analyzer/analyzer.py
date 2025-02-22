@@ -160,10 +160,3 @@ class CodeAnalyzer:
     def _generate_module_description(self, module_doc: str) -> str:
         """Generates a module-level description using LLM."""
         return self.llm_manager.get_module_description(module_doc)
-
-# Example usage
-if __name__ == "__main__":
-    # Assuming you have a git repository you want to analyze
-    repo_path = "path/to/your/repo"
-    analyzer = CodeAnalyzer(repo_path)
-    print(analyzer.analyze())
