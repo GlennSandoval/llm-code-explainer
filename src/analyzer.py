@@ -1,6 +1,7 @@
 from typing import Dict, List
 import subprocess
 import os
+import traceback
 from .tree_sitter_parser import TreeSitterParser
 from .language_config import get_language_from_extension
 from .llm_manager import LLMManager, CodeElement
@@ -162,6 +163,7 @@ class CodeAnalyzer:
 
             except Exception as e:
                 print(f"Error analyzing {file_path}: {e}")
+                traceback.print_exc()
                 continue
 
         return results

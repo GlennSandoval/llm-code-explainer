@@ -1,5 +1,5 @@
-import tree_sitter
-from typing import List, Dict
+from tree_sitter import Parser
+from typing import List
 from .language_config import LANGUAGE_CONFIGS
 
 
@@ -14,9 +14,6 @@ class TreeSitterParser:
             source_code: The source code to parse
             language: Programming language of the source code (default: 'python')
         """
-        # Initialize tree-sitter
-        self.parser = tree_sitter.Parser()
-
         # Validate language
         language = language.lower()
         if language not in LANGUAGE_CONFIGS:
@@ -24,9 +21,11 @@ class TreeSitterParser:
                 f"Unsupported language: {language}. Supported languages: {', '.join(LANGUAGE_CONFIGS.keys())}"
             )
 
+        ts_language = LANGUAGE_CONFIGS[language]
+
         # Use the language module directly
         try:
-            self.parser.set_language(LANGUAGE_CONFIGS[language])
+            self.parser = Parser(language=ts_language)
         except Exception as e:
             raise RuntimeError(f"Failed to load {language} grammar: {str(e)}")
 

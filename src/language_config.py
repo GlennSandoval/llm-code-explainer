@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Dict
+from tree_sitter import Language
 
 # Add module docstring
 """
@@ -19,17 +20,17 @@ from tree_sitter_rust import language as rust_language
 from tree_sitter_php import language_php as php_language
 
 # Mapping of language names to their tree-sitter language modules
-LANGUAGE_CONFIGS: Dict[str, Any] = {
-    "python": python_language,
-    "javascript": javascript_language,
-    "typescript": typescript_language,
-    "ruby": ruby_language,
-    "go": go_language,
-    "java": java_language,
-    "cpp": cpp_language,
-    "c": c_language,
-    "rust": rust_language,
-    "php": php_language,
+LANGUAGE_CONFIGS: Dict[str, Language] = {
+    "python": Language(python_language()),
+    "javascript": Language(javascript_language()),
+    "typescript": Language(typescript_language()),
+    "ruby": Language(ruby_language()),
+    "go": Language(go_language()),
+    "java": Language(java_language()),
+    "cpp": Language(cpp_language()),
+    "c": Language(c_language()),
+    "rust": Language(rust_language()),
+    "php": Language(php_language()),
 }
 
 # Mapping of file extensions to language names
