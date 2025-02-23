@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import Mock, patch
 import os
+import pytest
 from src.analyzer import CodeAnalyzer
 from src.tree_sitter_parser import TreeSitterParser
 
@@ -18,7 +18,15 @@ def mock_repo():
 @pytest.fixture
 def code_analyzer():
     """Creates a CodeAnalyzer instance with a mock repository path"""
-    return CodeAnalyzer("/mock/repo/path")
+    with patch("src.analyzer.LLMManager") as mock_llm_manager_class:
+        # Setup mock LLM manager
+        mock_llm = Mock()
+        mock_llm.get_module_description.return_value = "Module LLM description"
+        mock_llm.get_code_description.return_value = "Code LLM description"
+        mock_llm_manager_class.return_value = mock_llm
+        
+        analyzer = CodeAnalyzer("/mock/repo/path")
+        return analyzer
 
 
 def test_init(code_analyzer):
@@ -61,10 +69,13 @@ class TestClass:
 def test_read_file_content(code_analyzer):
     """Test reading file content"""
     # Create a mock that properly implements the context manager protocol
+    # Create a mock file object that supports context manager protocol
     mock_file = Mock()
+    mock_file.__enter__ = Mock(return_value=mock_file)
+    mock_file.__exit__ = Mock(return_value=None)
     mock_file.read.return_value = "test content"
 
-    with patch("builtins.open", return_value=mock_file) as mock_open:
+    with patch("builtins.open", Mock(return_value=mock_file)) as mock_open:
         content = code_analyzer._read_file_content("test.py")
         assert content == "test content"
         mock_open.assert_called_once_with("test.py", "r", encoding="utf-8")
@@ -73,10 +84,15 @@ def test_read_file_content(code_analyzer):
 def test_read_file_content_fallback_encoding(code_analyzer):
     """Test reading file content with fallback encoding"""
     # Create mocks that properly implement file reading
+    # Create mock file objects that support context manager protocol
     mock_file_utf8 = Mock()
+    mock_file_utf8.__enter__ = Mock(return_value=mock_file_utf8)
+    mock_file_utf8.__exit__ = Mock(return_value=None)
     mock_file_utf8.read.side_effect = UnicodeDecodeError("utf-8", b"", 0, 1, "invalid")
 
     mock_file_latin = Mock()
+    mock_file_latin.__enter__ = Mock(return_value=mock_file_latin)
+    mock_file_latin.__exit__ = Mock(return_value=None)
     mock_file_latin.read.return_value = "test content"
 
     mock_open = Mock()
@@ -164,3 +180,40 @@ def test_analyze_method(code_analyzer):
         assert "test_method()" in result
         assert "LLM description" in result
         assert "Parameters: param1, param2" in result
+
+
+def test_generate_module_description(code_analyzer):
+    """Test module description generation"""
+    module_doc = "Test module docstring"
+    
+    # Mock the LLMManager's get_module_description method
+    with patch.object(code_analyzer.llm_manager, "get_module_description") as mock_llm:
+        mock_llm.return_value = "LLM module description"
+        
+        result = code_analyzer._generate_module_description(module_doc)
+        
+        assert result == "LLM module description"
+        mock_llm.assert_called_once_with(module_doc)
+
+
+def test_get_llm_description(code_analyzer):
+    """Test LLM description generation for code elements"""
+    from src.llm_manager import CodeElement
+    
+    # Create a test code element
+    code_element = CodeElement(
+        name="test_func",
+        type="method",
+        docstring="Test docstring",
+        source_code="def test_func():\n    pass",
+        parameters=["param1"]
+    )
+    
+    # Mock the LLMManager's get_code_description method
+    with patch.object(code_analyzer.llm_manager, "get_code_description") as mock_llm:
+        mock_llm.return_value = "LLM code description"
+        
+        result = code_analyzer._get_llm_description(code_element)
+        
+        assert result == "LLM code description"
+        mock_llm.assert_called_once_with(code_element)
