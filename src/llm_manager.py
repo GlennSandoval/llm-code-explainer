@@ -48,29 +48,29 @@ class LLMManager:
     def get_code_description(self, element: CodeElement) -> str:
         """Generates a semantic description of a code element using LLM."""
         if element.type == 'class':
-            prompt = f"""Given this Python class:
+            prompt = f"""Given this class definition:
 
 {element.source_code}
 
 Provide a concise description of what this class does. Focus on its purpose and main functionality. Docstring: {element.docstring}
 """
         else:  # method
-            prompt = f"""Given this Python method:
+            prompt = f"""Given this function/method:
 
 {element.source_code}
 
-Provide a concise description of what this method does. Include its purpose, parameters, and return value. Docstring: {element.docstring}
+Provide a concise description of what this function/method does. Include its purpose, parameters, and return value. Docstring: {element.docstring}
 """
         
         return self._get_llm_response(prompt, max_tokens=150)
 
     def get_module_description(self, module_doc: str) -> str:
         """Generates a module-level description using LLM."""
-        prompt = f"""Given this Python module docstring:
+        prompt = f"""Given this module/file docstring:
 
 {module_doc}
 
-Provide a concise description of what this module does."""
+Provide a concise description of what this module/file does."""
         
         response = self._get_llm_response(prompt, max_tokens=100)
         return f"Module Purpose: {response}\n"
@@ -82,7 +82,7 @@ Provide a concise description of what this module does."""
                 response = openai.chat.completions.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are a code analysis assistant. Provide clear, concise descriptions of Python code."},
+                        {"role": "system", "content": "You are a code analysis assistant. Provide clear, concise descriptions of source code."},
                         {"role": "user", "content": prompt}
                     ],
                     max_tokens=max_tokens,
@@ -95,13 +95,13 @@ Provide a concise description of what this module does."""
                     model="claude-3-sonnet-20240229",
                     max_tokens=max_tokens,
                     temperature=temperature,
-                    system="You are a code analysis assistant. Provide clear, concise descriptions of Python code.",
+                    system="You are a code analysis assistant. Provide clear, concise descriptions of source code.",
                     messages=[{"role": "user", "content": prompt}]
                 )
                 return response.content[0].text.strip()
             
             elif self.provider == "openllama":
-                system_prompt = "You are a code analysis assistant. Provide clear, concise descriptions of Python code."
+                system_prompt = "You are a code analysis assistant. Provide clear, concise descriptions of source code."
                 full_prompt = f"{system_prompt}\n\nUser: {prompt}\nAssistant:"
                 response = self.model(
                     full_prompt,
