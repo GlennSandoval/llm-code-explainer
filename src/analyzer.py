@@ -2,6 +2,16 @@ from typing import Dict, List
 import subprocess
 import os
 import traceback
+import time
+import logging
+from functools import lru_cache
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def node_cache_key(node, parser):
+    """Generate a unique cache key for a node based on its text and position"""
+    return f"{parser.get_node_text(node)}:{node.start_point}:{node.end_point}"
 from .tree_sitter_parser import TreeSitterParser
 from .language_config import get_language_from_extension
 from .llm_manager import LLMManager, CodeElement
@@ -33,6 +43,8 @@ class CodeAnalyzer:
         """
         self.repo_path = os.path.abspath(repo_path)  # Convert to absolute path for consistency
         self.llm_manager = LLMManager(provider)  # Initialize LLM interface
+        self._parser_cache = {}  # Cache for TreeSitterParser instances
+        self._node_cache = {}   # Cache for analyzed nodes
 
     def _get_repository_files(self) -> List[str]:
         """
@@ -123,18 +135,32 @@ class CodeAnalyzer:
         for file_path in self._get_repository_files():
             # Skip files we can't parse
             try:
+                start_time = time.time()
                 language = get_language_from_extension(file_path)
+                logger.info(f"Language detection time for {file_path}: {time.time() - start_time:.3f}s")
                 if not language:
                     continue
             except ValueError:
                 continue
 
             try:
-                # Parse file and extract code elements
-                source_code = self._read_file_content(file_path)
-                parser = TreeSitterParser(source_code, language=language)
+                # Check parser cache first
+                cache_key = f"{file_path}:{language}"
+                if cache_key in self._parser_cache:
+                    parser = self._parser_cache[cache_key]
+                    logger.info(f"Using cached parser for {file_path}")
+                else:
+                    # Parse file and extract code elements
+                    source_code = self._read_file_content(file_path)
+                    
+                    start_time = time.time()
+                    parser = TreeSitterParser(source_code, language=language)
+                    self._parser_cache[cache_key] = parser
+                    logger.info(f"Parser initialization for {file_path}: {time.time() - start_time:.3f}s")
 
                 description = []
+                
+                start_time = time.time()
 
                 # Get module docstring
                 module_doc = parser.get_module_docstring()
@@ -156,6 +182,9 @@ class CodeAnalyzer:
                     description.append("\nTop-level functions:")
                     for node in top_level_functions:
                         description.append(self._analyze_method(node, parser))
+
+                analysis_time = time.time() - start_time
+                logger.info(f"Node analysis time for {file_path}: {analysis_time:.3f}s")
 
                 # Store results using relative path from repo root
                 rel_path = os.path.relpath(file_path, self.repo_path)
@@ -187,6 +216,13 @@ class CodeAnalyzer:
             - Class name and description
             - List of methods with their descriptions
         """
+        # Check cache first
+        cache_key = node_cache_key(class_node, parser)
+        if cache_key in self._node_cache:
+            logger.info("Using cached class analysis")
+            return self._node_cache[cache_key]
+
+        start_time = time.time()
         # Extract class name and source code
         class_name = parser.get_node_text(class_node.child_by_field_name("name"))
         class_source = parser.get_node_text(class_node)
@@ -220,7 +256,10 @@ class CodeAnalyzer:
             class_desc.append("\nMethods:")
             class_desc.extend(methods)
 
-        return "\n".join(class_desc)
+        result = "\n".join(class_desc)
+        self._node_cache[cache_key] = result
+        logger.info(f"Class analysis time: {time.time() - start_time:.3f}s")
+        return result
 
     def _analyze_method(self, method_node, parser: TreeSitterParser) -> str:
         """
@@ -241,6 +280,13 @@ class CodeAnalyzer:
             - Method name and description
             - Parameter list if present
         """
+        # Check cache first
+        cache_key = node_cache_key(method_node, parser)
+        if cache_key in self._node_cache:
+            logger.info("Using cached method analysis")
+            return self._node_cache[cache_key]
+
+        start_time = time.time()
         # Extract method name and source code
         method_name = parser.get_node_text(method_node.child_by_field_name("name"))
         method_source = parser.get_node_text(method_node)
@@ -269,8 +315,12 @@ class CodeAnalyzer:
         if params:
             method_desc.append(f"  Parameters: {', '.join(params)}")
 
-        return "\n".join(method_desc)
+        result = "\n".join(method_desc)
+        self._node_cache[cache_key] = result
+        logger.info(f"Method analysis time: {time.time() - start_time:.3f}s")
+        return result
 
+    @lru_cache(maxsize=128)
     def _get_llm_description(self, element: CodeElement) -> str:
         """
         Generates a semantic description of a code element using LLM.
@@ -288,6 +338,7 @@ class CodeAnalyzer:
         """
         return self.llm_manager.get_code_description(element)
 
+    @lru_cache(maxsize=128)
     def _generate_module_description(self, module_doc: str) -> str:
         """
         Generates a module-level description using LLM.
