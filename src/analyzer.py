@@ -320,7 +320,20 @@ class CodeAnalyzer:
         logger.info(f"Method analysis time: {time.time() - start_time:.3f}s")
         return result
 
-    @lru_cache(maxsize=128)
+    def _element_cache_key(self, element: CodeElement) -> str:
+        """
+        Generate a unique cache key for a CodeElement based on its attributes.
+        
+        Args:
+            element: CodeElement to generate a key for
+            
+        Returns:
+            String that can be used as a dictionary key
+        """
+        # Create a tuple of the element's attributes
+        params_str = ",".join(element.parameters) if element.parameters else ""
+        return f"{element.type}:{element.name}:{hash(element.source_code)}:{hash(element.docstring)}:{hash(params_str)}"
+    
     def _get_llm_description(self, element: CodeElement) -> str:
         """
         Generates a semantic description of a code element using LLM.
@@ -336,9 +349,19 @@ class CodeAnalyzer:
         Returns:
             Natural language description of the code element
         """
-        return self.llm_manager.get_code_description(element)
+        # Use our custom cache instead of lru_cache
+        cache_key = self._element_cache_key(element)
+        if cache_key in self._node_cache:
+            logger.info(f"Using cached LLM description for {element.type} '{element.name}'")
+            return self._node_cache[cache_key]
+        
+        logger.info(f"Getting LLM description for {element.type} '{element.name}'")
+        description = self.llm_manager.get_code_description(element)
+        
+        # Cache the result
+        self._node_cache[cache_key] = description
+        return description
 
-    @lru_cache(maxsize=128)
     def _generate_module_description(self, module_doc: str) -> str:
         """
         Generates a module-level description using LLM.
@@ -352,4 +375,15 @@ class CodeAnalyzer:
         Returns:
             Enhanced natural language description of the module
         """
-        return self.llm_manager.get_module_description(module_doc)
+        # Use our custom cache instead of lru_cache
+        cache_key = f"module:{hash(module_doc)}"
+        if cache_key in self._node_cache:
+            logger.info("Using cached module description")
+            return self._node_cache[cache_key]
+        
+        logger.info("Getting LLM description for module")
+        description = self.llm_manager.get_module_description(module_doc)
+        
+        # Cache the result
+        self._node_cache[cache_key] = description
+        return description
