@@ -1,3 +1,4 @@
+from ollama import Client as Ollama 
 from dataclasses import dataclass
 from typing import List
 import os
@@ -45,6 +46,11 @@ class LLMManager:
             self.model = Llama(
                 model_path=os.getenv("OPENLLAMA_MODEL_PATH"), n_ctx=2048, n_threads=4
             )
+        elif self.provider == "ollama":
+            host = os.getenv("OLLAMA_URL")
+            if not host:
+                raise ValueError("Ollama host url must be provided in .env file")
+            self.client = Ollama(host)
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -118,6 +124,15 @@ Provide a concise description of what this module/file does."""
                     stop=["User:", "\n\n"],
                 )
                 return response["choices"][0]["text"].strip()
+
+            elif self.provider == "ollama":
+                response = self.client.chat(
+                    model="qwen2:7B",
+                    messages=[
+                        {"role": "user", "content": prompt},
+                    ],
+                )
+                return response.message.content.strip()
 
         except Exception as e:
             raise LLMError(f"Failed to generate description: {str(e)}")
