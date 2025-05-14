@@ -8,6 +8,7 @@ A Python-based tool for analyzing and understanding code structure using tree-si
 - LLM-powered code insights
 - Support for multiple programming languages
 - Extensible architecture
+- Project structure analysis for enhanced context
 
 ## Installation
 
@@ -24,18 +25,44 @@ make install
 
 ## Usage
 
-Check out the examples directory for usage examples. Here's a basic example:
+Check out the examples directory for usage examples.
+
+### Code Analysis
 
 ```python
 from src.analyzer import CodeAnalyzer
-from src.llm_manager import LLMManager
 
-analyzer = CodeAnalyzer()
-llm_manager = LLMManager()
+# Initialize with repository path
+repo_path = "/path/to/your/repo"
+analyzer = CodeAnalyzer(repo_path, provider="ollama")
 
-# Analyze some code
-analysis = analyzer.analyze(your_code)
-insights = llm_manager.get_code_insights(analysis)
+# Analyze code in the repository
+results = analyzer.analyze()
+
+# Write results to a file
+with open("analysis.txt", "w") as f:
+    for file_path, analysis in results.items():
+        f.write(f"\n--- {file_path} ---\n")
+        f.write(analysis)
+```
+
+### Project Structure Analysis
+
+```python
+from src.analyzer import CodeAnalyzer
+
+# Initialize with repository path
+repo_path = "/path/to/your/repo"
+analyzer = CodeAnalyzer(repo_path, provider="ollama")
+
+# Analyze project structure
+structure = analyzer.analyze_project_structure()
+
+# Get project overview using LLM
+analyzer.llm_manager.set_project_structure(structure)
+overview = analyzer.llm_manager.get_project_overview()
+
+print(overview)
 ```
 
 ## Development
@@ -49,12 +76,18 @@ insights = llm_manager.get_code_insights(analysis)
 
 ```
 code-parser/
-├── src/              # Source code
-├── tests/            # Test files
-├── config/           # Configuration files
-├── docs/             # Documentation
-├── examples/         # Usage examples
-└── scripts/          # Development scripts
+├── src/                          # Source code
+│   ├── analyzer.py               # Core code analysis functionality
+│   ├── tree_sitter_parser.py     # Tree-sitter integration
+│   ├── llm_manager.py            # LLM provider integrations
+│   └── language_config.py        # Language support configuration
+├── tests/                        # Test files
+├── config/                       # Configuration files
+├── docs/                         # Documentation
+├── examples/                     # Usage examples
+│   ├── basic_usage.py            # Basic code analysis example
+│   └── project_structure_analysis.py # Project structure analysis example
+└── main.py                       # Command-line interface
 ```
 
 ## Contributing

@@ -5,6 +5,8 @@ import traceback
 import time
 import logging
 from functools import lru_cache
+from collections import defaultdict
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -387,3 +389,96 @@ class CodeAnalyzer:
         # Cache the result
         self._node_cache[cache_key] = description
         return description
+        
+    def analyze_project_structure(self) -> Dict[str, Any]:
+        """
+        Analyzes the project structure and returns a comprehensive overview.
+        
+        This method:
+        1. Maps file extensions to identify language distribution
+        2. Identifies key directories and their purposes
+        3. Categorizes files based on their function (source, test, config, docs)
+        4. Computes statistics about code organization
+        
+        Returns:
+            Dictionary containing project structure information:
+            - language_distribution: Count of files by language
+            - directory_structure: Hierarchical directory organization
+            - file_categories: Files grouped by function
+            - statistics: Overall code metrics
+        """
+        logger.info("Analyzing project structure")
+        start_time: float = time.time()
+        
+        # Get all files in the repository
+        all_files: List[str] = self._get_repository_files()
+        
+        # Initialize result structure
+        result: Dict[str, Any] = {
+            "language_distribution": defaultdict(int),
+            "directory_structure": defaultdict(list),
+            "file_categories": {
+                "source": [],
+                "test": [],
+                "config": [],
+                "documentation": [],
+                "other": []
+            },
+            "statistics": {
+                "total_files": len(all_files),
+                "directories": set()
+            }
+        }
+        
+        # Process each file
+        for file_path in all_files:
+            rel_path: str = os.path.relpath(file_path, self.repo_path)
+            
+            # Get file extension and language
+            _, ext = os.path.splitext(file_path)
+            language: Optional[str] = None
+            try:
+                language = get_language_from_extension(file_path)
+            except ValueError:
+                pass
+            
+            # Update language distribution
+            if language:
+                result["language_distribution"][language] += 1
+            else:
+                result["language_distribution"][ext or "no_extension"] += 1
+            
+            # Update directory structure
+            directory: str = os.path.dirname(rel_path)
+            if directory:
+                result["directory_structure"][directory].append(os.path.basename(file_path))
+                result["statistics"]["directories"].add(directory)
+            else:
+                result["directory_structure"]["root"].append(os.path.basename(file_path))
+            
+            # Categorize files
+            if "test" in rel_path.lower() or "tests" in rel_path.lower():
+                result["file_categories"]["test"].append(rel_path)
+            elif ext in (".md", ".txt", ".rst", ".html", ".pdf"):
+                result["file_categories"]["documentation"].append(rel_path)
+            elif ext in (".json", ".yml", ".yaml", ".ini", ".toml", ".cfg", ".config"):
+                result["file_categories"]["config"].append(rel_path)
+            elif language:
+                result["file_categories"]["source"].append(rel_path)
+            else:
+                result["file_categories"]["other"].append(rel_path)
+        
+        # Convert defaultdicts to regular dicts for better serialization
+        result["language_distribution"] = dict(result["language_distribution"])
+        result["directory_structure"] = dict(result["directory_structure"])
+        
+        # Update statistics
+        result["statistics"]["directories"] = list(result["statistics"]["directories"])
+        result["statistics"]["directory_count"] = len(result["statistics"]["directories"])
+        result["statistics"]["source_files"] = len(result["file_categories"]["source"])
+        result["statistics"]["test_files"] = len(result["file_categories"]["test"])
+        result["statistics"]["config_files"] = len(result["file_categories"]["config"])
+        result["statistics"]["documentation_files"] = len(result["file_categories"]["documentation"])
+        
+        logger.info(f"Project structure analysis completed in {time.time() - start_time:.3f}s")
+        return result
